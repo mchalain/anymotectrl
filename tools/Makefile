@@ -1,0 +1,95 @@
+#look in kbdmapping.h to change the mapping to use
+KEYMAP=KEYBOARD_AZERTY
+KEYBOARDMAP=defaultmap.bin
+KEYBOARDMAPGENERATOR=kbdmapping_generator
+REMOTEMAPGENERATOR=remotemapping_generator
+REMOTEMAP=defaultremote.bin
+
+TARGETDIR?=../bin
+OBJDIR?=obj
+PREFIX?=/usr/local
+SHAREDIR?=$(PREFIX)/share/anymote
+BINDIR?=$(PREFIX)/bin
+LIBDIR?=$(PREFIX)/lib
+CONFIGDIR?=$(PREFIX)/etc
+
+MKDIR=mkdir
+CP=cp
+ifneq ($(origin ARCH), undefined)
+	export CC:=$(ARCH)gcc
+	export LD:=$(ARCH)$(LD)
+	export AR:=$(ARCH)$(AR)
+	OBJDIR:=$(ARCH)$(OBJDIR)
+	TARGETDIR:=../$(ARCH)bin
+	CFLAGS+= -DBROADCOM
+endif
+
+CFLAGS=-g -Wall
+#LDFLAGS= -lefence -lpthread
+
+all:$(TARGETDIR)/$(KEYBOARDMAP)  $(TARGETDIR)/$(REMOTEMAP)
+
+static: CFLAGS+= -DSTATIC
+
+CFLAGS+= -I../include
+CFLAGS+=  -DSHAREDIR=\"$(SHAREDIR)\" -DCONFIGDIR=\"$(CONFIGDIR)\"
+
+$(OBJDIR) $(TARGETDIR):
+	$(MKDIR) $@
+
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+$(KEYBOARDMAPGENERATOR): CFLAGS+= -D$(KEYMAP)
+$(KEYBOARDMAPGENERATOR): $(KEYBOARDMAPGENERATOR).o
+	$(CC) $^ -o $@
+$(TARGETDIR)/$(KEYBOARDMAP): $(KEYBOARDMAPGENERATOR)
+	$(KEYBOARDMAPGENERATOR) $(TARGETDIR)/$(KEYBOARDMAP)
+
+$(REMOTEMAPGENERATOR): CFLAGS+= -DREMOTEKEY
+$(REMOTEMAPGENERATOR).o: $(KEYBOARDMAPGENERATOR).c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+$(REMOTEMAPGENERATOR): $(REMOTEMAPGENERATOR).o
+	$(CC) $^ -o $@
+$(TARGETDIR)/$(REMOTEMAP): $(REMOTEMAPGENERATOR)
+	$(REMOTEMAPGENERATOR) $(TARGETDIR)/$(REMOTEMAP)
+
+clean:
+	$(RM) $(TARGETDIR)/$(KEYBOARDMAP) $(TARGETDIR)/$(REMOTEMAP)
+	$(RM) $(KEYBOARDMAPGENERATOR).o $(KEYBOARDMAPGENERATOR)
+	$(RM) $(REMOTEMAPGENERATOR).o  $(REMOTEMAPGENERATOR)
+
+ARCHIVERDIR=../../archiver/$(ARCH)xbinary
+
+ifneq ($(origin PACKAGEDIR), undefined)
+	$(PACKAGEDIR)+="/"
+endif
+
+$(PREFIX):
+	$(MKDIR) -p $(PREFIX)
+
+$(BINDIR):
+	$(MKDIR) -p $(BINDIR)
+
+$(LIBDIR):
+	$(MKDIR) -p $(LIBDIR)
+
+$(SHAREDIR):
+	$(MKDIR) -p $(SHAREDIR)
+
+$(CONFIGDIR):
+	$(MKDIR) -p $(CONFIGDIR)
+
+install: $(PREFIX) install-bin install-lib install-share install-config
+
+install-bin:$(BINDIR)
+	$(CP) $(TARGETDIR)/$(MAIN_TARGET) $(PACKAGEDIR)$(BINDIR)
+
+install-lib:$(LIBDIR)
+	$(CP) $(TARGETDIR)/lib$(LIB_TARGET).so $(PACKAGEDIR)$(LIBDIR)
+
+install-share:$(SHAREDIR)
+	$(CP)  $(TARGETDIR)/lib$(LIBDEVICEADAPTER_TARGET)*.so $(TARGETDIR)/lib$(LIBDEVICEDRIVER_TARGET).so $(TARGETDIR)/$(KEYBOARDMAP) $(PACKAGEDIR)$(SHAREDIR)
+
+install-config:
+

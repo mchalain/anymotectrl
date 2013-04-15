@@ -1,0 +1,45 @@
+AnymoteCtrl:
+------------
+AnymoteCtrl is a part of the Google-tv-remote daemon for Linux.
+It parses and generates kernel event from "Anymote" (google) messages.
+It reads messages from a fifo file or the standard input.
+You need google-tv-pairing to manage network sub-system with device pairing and data receiving.
+
+Building:
+---------
+Edit the main Makefile to change PREFIX, SHAREDIR, CONFIGDIR, BINDIR, LIBDIR
+The default values are:
+ PREFIX=/usr/local
+ BINDIR=/usr/local/bin
+ LIBDIR=/usr/local/lib
+ SHAREDIR=/usr/local/share/anymote
+ CONFIGDIR=/usr/local/etc/anymote
+
+To build, launch:
+ make
+and as root:
+ make install
+
+To build a package with archiver:
+ PACKAGEDIR=$(ARCHIVERDIR)/ make install
+
+Install files:
+--------------
+different files are generated with specific use:
+ - anymotecltrd: the main application. It reads the input fifo and push data in the librrary parser.
+ - libanymotectlr.so: the library parser. It loads plugins, and parses data to generate events.
+ - libdeviceadapter_kbd.so: the plugin that transforms Anymote data string to keycode.
+ - defaultmap.bin: it describes the keyboard mapping. Change the value KEYMAP in the src/Makefile
+ - libdeviceadapter_mouse.so: the plugin that transforms Anymote "mouseevent", "mousewheel" messages to mouse events.
+ - libdeviceadapter_remote.so: the plugin that transforms Anymote "keyevent" messages to keycode.
+ - remotemap.bin: it describes the keycode translation.
+ - libdevicedriver_uinput.so: the plugin that push events in the kernel system with uinput kernel module.
+
+Copyright:
+----------
+Marc Chalain
+marc.chalain@gmail.com
+
+Licence:
+--------
+LGPL v3 for all libraries.
